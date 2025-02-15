@@ -25,9 +25,14 @@ export async function POST(req: Request) {
       throw new Error('SERP API key not configured');
     }
     
+    // Add "men's" to the search query if it's not already included
+    const menSearchQuery = searchQuery.toLowerCase().includes("men") 
+      ? searchQuery 
+      : `men's ${searchQuery}`;
+    
     // Call SerpApi with GBP currency and UK locale
     const serpApiUrl = `https://serpapi.com/search.json?` + 
-      `q=${encodeURIComponent(searchQuery)}&` +
+      `q=${encodeURIComponent(menSearchQuery)}&` +
       `tbm=shop&` +
       `location=United+Kingdom&` +
       `hl=en&` +
