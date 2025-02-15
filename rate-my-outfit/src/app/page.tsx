@@ -14,9 +14,9 @@ export default function Home() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result as string);
+        setPreview(reader.result as string); // Save Base64
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(file); // Convert to Base64
       setImage(file.name);
     }
   };
@@ -27,26 +27,18 @@ export default function Home() {
     setLoading(true);
     setAnalysis(null);
   
-    try {
-      const response = await fetch("/api/analyze-outfit", {
-        method: "POST",
-        body: JSON.stringify({ imageUrl: preview }),
-        headers: { "Content-Type": "application/json" },
-      });
+    console.log("📤 Sending image data to API:", preview); // Log Base64 before sending
   
-      console.log("🔍 Raw API Response:", response);
+    const response = await fetch("/api/analyze-outfit", {
+      method: "POST",
+      body: JSON.stringify({ imageBase64: preview }), // Send Base64
+      headers: { "Content-Type": "application/json" },
+    });
   
-      const text = await response.text(); // Get raw text response
-      console.log("📜 Raw Response Text:", text);
-  
-      const data = JSON.parse(text); // Convert to JSON manually
-      setAnalysis(data.message || "No response from AI.");
-    } catch (error) {
-      console.error("❌ Error parsing API response:", error);
-      setAnalysis("Error analyzing outfit.");
-    } finally {
-      setLoading(false);
-    }
+    const data = await response.json();
+    console.log("📝 API Response:", data);
+    setAnalysis(data.message || "No response from AI.");
+    setLoading(false);
   };
 
   return (
