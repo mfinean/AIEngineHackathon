@@ -165,7 +165,7 @@ export default function Home() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`mt-6 px-6 py-3 text-white font-semibold rounded-lg shadow-md ${
-                preview ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
+                preview ? "bg-gray-800 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
               } transition-all`}
               onClick={() => {
                 console.log("🚀 Analyze button clicked!");
@@ -217,7 +217,7 @@ export default function Home() {
             <div className="flex gap-4 mt-6">
               <button
                 className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
-                  activeTab === "styling" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                  activeTab === "styling" ? "bg-gray-800" : "bg-gray-300 hover:bg-gray-400"
                 }`}
                 onClick={() => setActiveTab("styling")}
               >
@@ -225,7 +225,7 @@ export default function Home() {
               </button>
               <button
                 className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
-                  activeTab === "recommendations" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                  activeTab === "recommendations" ? "bg-gray-800" : "bg-gray-300 hover:bg-gray-400"
                 }`}
                 onClick={() => setActiveTab("recommendations")}
               >
