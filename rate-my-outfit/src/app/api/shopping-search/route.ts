@@ -33,6 +33,7 @@ export async function POST(req: Request) {
       `hl=en&` +
       `gl=uk&` +
       `currency=GBP&` +
+      `num=5&` +
       `api_key=${apiKey}`;
     
     console.log('Calling SerpAPI URL (without API key):', serpApiUrl.replace(apiKey, 'HIDDEN'));
