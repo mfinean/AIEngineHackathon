@@ -6,6 +6,8 @@ import { Zap } from "lucide-react"; // Import the lightning (zap) icon
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -19,8 +21,32 @@ export default function Home() {
     }
   };
 
-  const analyzeOutfit = () => {
-    alert("Analyzing outfit... (API call will go here)");
+  const analyzeOutfit = async () => {
+    if (!preview) return;
+  
+    setLoading(true);
+    setAnalysis(null);
+  
+    try {
+      const response = await fetch("/api/analyze-outfit", {
+        method: "POST",
+        body: JSON.stringify({ imageUrl: preview }),
+        headers: { "Content-Type": "application/json" },
+      });
+  
+      console.log("🔍 Raw API Response:", response);
+  
+      const text = await response.text(); // Get raw text response
+      console.log("📜 Raw Response Text:", text);
+  
+      const data = JSON.parse(text); // Convert to JSON manually
+      setAnalysis(data.message || "No response from AI.");
+    } catch (error) {
+      console.error("❌ Error parsing API response:", error);
+      setAnalysis("Error analyzing outfit.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,14 +92,22 @@ export default function Home() {
             preview ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
           }`}
           onClick={analyzeOutfit}
-          disabled={!preview}
+          disabled={!preview || loading}
         >
-          Analyze Outfit
+          {loading ? "Analyzing..." : "Analyze Outfit"}
         </button>
+
+        {/* AI Response */}
+        {analysis && (
+          <div className="mt-4 p-4 bg-gray-200 rounded-lg text-gray-700 text-center">
+            <strong>AI's Feedback:</strong> {analysis}
+          </div>
+        )}
       </div>
 
-      <footer className="mt-12 text-gray-500 text-sm flex items-center gap-2">
-        Built with <Zap className="w-5 h-5 text-yellow-500" /> at AI Engine Hackathon!
+      {/* Footer */}
+      <footer className="mt-12 text-gray-500 text-sm">
+        Built with ⚡ at AI Engine Hackathon!
       </footer>
     </div>
   );

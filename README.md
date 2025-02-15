@@ -9,6 +9,7 @@ cd rate-my-outfit
 npm install
 npm install -g vercel
 npm install lucide-react
+npm install openai
 vercel login
 vercel
 ```
