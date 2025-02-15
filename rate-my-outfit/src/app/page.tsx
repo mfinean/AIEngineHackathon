@@ -21,7 +21,7 @@ interface PurchaseRecommendation {
 
 interface TryOnState {
   itemId: string | null;
-  status: 'idle' | 'processing' | 'completed' | 'error';
+  status: 'idle' | 'processing' | 'completed';
   result: string | null;
 }
 
@@ -33,13 +33,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"styling" | "recommendations">("styling");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
-  const [shoppingResults, setShoppingResults] = useState<ShoppingResult[]>([]);
   const [expandedRecommendation, setExpandedRecommendation] = useState<number | null>(null);
   const [recommendationResults, setRecommendationResults] = useState<{ [key: number]: ShoppingResult[] }>({});
   const [tryOnState, setTryOnState] = useState<TryOnState>({
     itemId: null,
     status: 'idle',
-    result: null,
+    result: null
   });
 
   const loadingMessages = [
@@ -67,7 +66,6 @@ export default function Home() {
     setError(null);
     setStylingAdvice([]);
     setPurchaseRecommendations([]);
-    setShoppingResults([]);
     setLoadingStep(0);
 
     const loadingInterval = setInterval(() => {
@@ -81,32 +79,18 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to analyze outfit');
+        throw new Error(data.error || 'Failed to analyze outfit');
       }
 
-      const data = await response.json();
       setStylingAdvice(data.styling_advice || []);
       setPurchaseRecommendations(data.purchase_recommendations || []);
 
-      if (data.purchase_recommendations?.length > 0) {
-        const searchPromises = data.purchase_recommendations.map(async (rec: { search_query: string }) => {
-          const shopResponse = await fetch('/api/shopping-search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ searchQuery: rec.search_query })
-          });
-          
-          if (!shopResponse.ok) throw new Error('Shopping search failed');
-          const shopData = await shopResponse.json();
-          return shopData.results;
-        });
-
-        const results = await Promise.all(searchPromises);
-        setShoppingResults(results.flat());
-      }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
     } finally {
       clearInterval(loadingInterval);
       setLoading(false);
@@ -143,44 +127,50 @@ export default function Home() {
     }
   };
 
-  const handleTryOn = async (garmentImage: string, itemId: string) => {
-    if (!preview) {
-      setError('Please upload your photo first');
-      return;
-    }
-
-    setTryOnState({ itemId, status: 'processing', result: null });
-
+  const handleTryOn = async (imageUrl: string, itemId: string) => {
     try {
+      setTryOnState({
+        itemId,
+        status: 'processing',
+        result: null
+      });
+
+      console.log('Sending try-on request...', {
+        modelImage: preview?.substring(0, 100) + '...',
+        garmentImage: imageUrl
+      });
+
       const response = await fetch('/api/try-on', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           modelImage: preview,
-          garmentImage,
-        }),
+          garmentImage: imageUrl
+        })
       });
 
       const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+
+      if (!response.ok) {
+        console.error('Try-on API error:', data);
+        throw new Error(data.error || 'Failed to process try-on');
       }
 
-      // Update state with the result image
       setTryOnState({
         itemId,
         status: 'completed',
-        result: data.result,
+        result: data.result
       });
-
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Try-on error:', error);
       setTryOnState({
-        itemId,
-        status: 'error',
-        result: null,
+        itemId: null,
+        status: 'idle',
+        result: null
       });
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'Failed to process try-on. Please try again.');
     }
   };
 
@@ -253,7 +243,7 @@ export default function Home() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`mt-6 px-6 py-3 text-white font-semibold rounded-lg shadow-md ${
-                preview ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
+                preview ? "bg-gray-800 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
               } transition-all`}
               onClick={() => {
                 console.log("🚀 Analyze button clicked!");
@@ -305,7 +295,7 @@ export default function Home() {
             <div className="flex gap-4 mt-6">
               <button
                 className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
-                  activeTab === "styling" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                  activeTab === "styling" ? "bg-gray-800" : "bg-gray-300 hover:bg-gray-400"
                 }`}
                 onClick={() => setActiveTab("styling")}
               >
@@ -313,7 +303,7 @@ export default function Home() {
               </button>
               <button
                 className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
-                  activeTab === "recommendations" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                  activeTab === "recommendations" ? "bg-gray-800" : "bg-gray-300 hover:bg-gray-400"
                 }`}
                 onClick={() => setActiveTab("recommendations")}
               >
@@ -397,7 +387,7 @@ export default function Home() {
                                             </div>
                                           </a>
                                           
-                                          {/* Enhanced Try On Button */}
+                                          {/* Try On Button */}
                                           <button
                                             onClick={() => handleTryOn(result.image_url, result.link)}
                                             className="absolute bottom-3 right-3 bg-white hover:bg-gray-100 
@@ -431,7 +421,7 @@ export default function Home() {
                                             )}
                                           </button>
 
-                                          {/* Improved Try-on Result Modal */}
+                                          {/* Try-on Result Modal */}
                                           {tryOnState.status === 'completed' && tryOnState.itemId === result.link && (
                                             <div 
                                               className="fixed inset-0 bg-black/75 flex items-center justify-center z-50"
@@ -524,34 +514,6 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* {purchaseRecommendations.length > 0 && shoppingResults.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-xl font-semibold mb-4 text-white">Shopping Suggestions</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {shoppingResults.map((item, index) => (
-                      <a
-                        key={index}
-                        href={item.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center p-4 bg-gray-800 rounded-lg shadow hover:bg-gray-700 transition-all"
-                      >
-                        <img
-                          src={item.image_url}
-                          alt={item.title}
-                          className="w-20 h-20 object-cover rounded-md mr-4"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-100">{item.title}</h4>
-                          <p className="text-green-400 font-bold">{item.price}</p>
-                          <p className="text-sm text-gray-300">{item.seller}</p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )} */}
             </div>
           </div>
         </div>

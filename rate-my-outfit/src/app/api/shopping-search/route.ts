@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-interface ShoppingItem {
+export interface ShoppingItem {
   title: string;
   price: string;
   seller: string;
@@ -25,14 +25,20 @@ export async function POST(req: Request) {
       throw new Error('SERP API key not configured');
     }
     
+    // Add "men's" to the search query if it's not already included
+    const menSearchQuery = searchQuery.toLowerCase().includes("men") 
+      ? searchQuery 
+      : `men's ${searchQuery}`;
+    
     // Call SerpApi with GBP currency and UK locale
     const serpApiUrl = `https://serpapi.com/search.json?` + 
-      `q=${encodeURIComponent(searchQuery)}&` +
+      `q=${encodeURIComponent(menSearchQuery)}&` +
       `tbm=shop&` +
       `location=United+Kingdom&` +
       `hl=en&` +
       `gl=uk&` +
       `currency=GBP&` +
+      `num=5&` +
       `api_key=${apiKey}`;
     
     console.log('Calling SerpAPI URL (without API key):', serpApiUrl.replace(apiKey, 'HIDDEN'));
@@ -45,7 +51,7 @@ export async function POST(req: Request) {
     }
 
     // Format the shopping results
-    const results = data.shopping_results?.map((item: any) => ({
+    const results = data.shopping_results?.map((item: ShoppingResult) => ({
       title: item.title,
       price: item.price?.includes('£') ? item.price : `£${item.price?.replace('$', '')}`,
       seller: item.source || item.merchant || item.seller || 'Unknown retailer',
@@ -54,11 +60,21 @@ export async function POST(req: Request) {
     })) || [];
 
     return NextResponse.json({ results });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Shopping search error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Failed to fetch shopping results',
+      error: error instanceof Error ? error.message : 'Failed to fetch shopping results',
       results: [] 
     }, { status: 500 });
   }
+}
+
+interface ShoppingResult {
+  title: string;
+  price?: string;
+  source?: string;
+  merchant?: string;
+  seller?: string;
+  link: string;
+  thumbnail: string;
 } 
