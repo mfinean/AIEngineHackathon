@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion"; // For animations
+import { Loader2 } from 'lucide-react';
 
 interface ShoppingResult {
   title: string;
@@ -18,6 +19,12 @@ interface PurchaseRecommendation {
   search_query: string;
 }
 
+interface TryOnState {
+  itemId: string | null;
+  status: 'idle' | 'processing' | 'completed' | 'error';
+  result: string | null;
+}
+
 export default function Home() {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -29,6 +36,11 @@ export default function Home() {
   const [shoppingResults, setShoppingResults] = useState<ShoppingResult[]>([]);
   const [expandedRecommendation, setExpandedRecommendation] = useState<number | null>(null);
   const [recommendationResults, setRecommendationResults] = useState<{ [key: number]: ShoppingResult[] }>({});
+  const [tryOnState, setTryOnState] = useState<TryOnState>({
+    itemId: null,
+    status: 'idle',
+    result: null,
+  });
 
   const loadingMessages = [
     "Analyzing your outfit's style...",
@@ -130,6 +142,82 @@ export default function Home() {
       }
     }
   };
+
+  const handleTryOn = async (garmentImage: string, itemId: string) => {
+    if (!preview) {
+      setError('Please upload your photo first');
+      return;
+    }
+
+    setTryOnState({ itemId, status: 'processing', result: null });
+
+    try {
+      const response = await fetch('/api/try-on', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelImage: preview,
+          garmentImage,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Update state with the result image
+      setTryOnState({
+        itemId,
+        status: 'completed',
+        result: data.result,
+      });
+
+    } catch (error: any) {
+      setTryOnState({
+        itemId,
+        status: 'error',
+        result: null,
+      });
+      setError(error.message);
+    }
+  };
+
+  const renderShoppingItem = (item: any) => (
+    <div className="relative bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+      {/* Existing item content */}
+      <button
+        onClick={() => handleTryOn(item.image_url, item.link)}
+        className="absolute bottom-2 left-2 bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-sm flex items-center gap-2"
+        disabled={tryOnState.status === 'processing'}
+      >
+        {tryOnState.status === 'processing' && tryOnState.itemId === item.link ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          'Try On'
+        )}
+      </button>
+      
+      {/* Show try-on result if available */}
+      {tryOnState.status === 'completed' && tryOnState.itemId === item.link && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 max-w-2xl">
+            <img src={tryOnState.result} alt="Try-on result" className="w-full" />
+            <button 
+              onClick={() => setTryOnState({ itemId: null, status: 'idle', result: null })}
+              className="mt-4 bg-gray-600 text-white px-4 py-2 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -287,24 +375,111 @@ export default function Home() {
                                   {recommendationResults[index] ? (
                                     <div className="grid grid-cols-1 gap-4">
                                       {recommendationResults[index].map((result, resultIndex) => (
-                                        <a
+                                        <div
                                           key={resultIndex}
-                                          href={result.link}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                          className="flex flex-col p-4 bg-gray-700 rounded-lg relative"
                                         >
-                                          <img
-                                            src={result.image_url}
-                                            alt={result.title}
-                                            className="w-20 h-20 object-cover rounded-md mr-4"
-                                          />
-                                          <div className="flex-1">
-                                            <h4 className="font-semibold text-white">{result.title}</h4>
-                                            <p className="text-green-400 font-bold">{result.price}</p>
-                                            <p className="text-sm text-gray-300">{result.seller}</p>
-                                          </div>
-                                        </a>
+                                          <a
+                                            href={result.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center hover:bg-gray-600 transition-colors rounded-lg p-2 mb-8"
+                                          >
+                                            <img
+                                              src={result.image_url}
+                                              alt={result.title}
+                                              className="w-20 h-20 object-cover rounded-md mr-4"
+                                            />
+                                            <div className="flex-1">
+                                              <h4 className="font-semibold text-white">{result.title}</h4>
+                                              <p className="text-green-400 font-bold">{result.price}</p>
+                                              <p className="text-sm text-gray-300">{result.seller}</p>
+                                            </div>
+                                          </a>
+                                          
+                                          {/* Enhanced Try On Button */}
+                                          <button
+                                            onClick={() => handleTryOn(result.image_url, result.link)}
+                                            className="absolute bottom-3 right-3 bg-white hover:bg-gray-100 
+                                                      text-gray-800 px-3 py-2 rounded-md text-sm font-medium
+                                                      flex items-center gap-2 shadow-lg transition-all
+                                                      hover:scale-105 active:scale-95 border border-gray-200"
+                                            disabled={tryOnState.status === 'processing'}
+                                          >
+                                            {tryOnState.status === 'processing' && tryOnState.itemId === result.link ? (
+                                              <>
+                                                <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                                                <span>Processing...</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <svg 
+                                                  className="w-4 h-4" 
+                                                  fill="none" 
+                                                  stroke="currentColor" 
+                                                  viewBox="0 0 24 24"
+                                                >
+                                                  <path 
+                                                    strokeLinecap="round" 
+                                                    strokeLinejoin="round" 
+                                                    strokeWidth={2} 
+                                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                                                  />
+                                                </svg>
+                                                <span>Try On</span>
+                                              </>
+                                            )}
+                                          </button>
+
+                                          {/* Improved Try-on Result Modal */}
+                                          {tryOnState.status === 'completed' && tryOnState.itemId === result.link && (
+                                            <div 
+                                              className="fixed inset-0 bg-black/75 flex items-center justify-center z-50"
+                                              onClick={() => setTryOnState({ itemId: null, status: 'idle', result: null })}
+                                            >
+                                              <div 
+                                                className="bg-white rounded-lg p-6 max-w-2xl mx-4 relative"
+                                                onClick={e => e.stopPropagation()}
+                                              >
+                                                <button 
+                                                  onClick={() => setTryOnState({ itemId: null, status: 'idle', result: null })}
+                                                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                                                  aria-label="Close modal"
+                                                >
+                                                  <svg 
+                                                    className="w-6 h-6" 
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path 
+                                                      strokeLinecap="round" 
+                                                      strokeLinejoin="round" 
+                                                      strokeWidth={2} 
+                                                      d="M6 18L18 6M6 6l12 12"
+                                                    />
+                                                  </svg>
+                                                </button>
+                                                
+                                                <img 
+                                                  src={tryOnState.result} 
+                                                  alt="Try-on result" 
+                                                  className="w-full rounded-lg shadow-lg"
+                                                />
+                                                
+                                                <div className="mt-4 flex justify-end">
+                                                  <button 
+                                                    onClick={() => setTryOnState({ itemId: null, status: 'idle', result: null })}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 
+                                                              rounded-md font-medium transition-colors"
+                                                  >
+                                                    Close
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
                                       ))}
                                     </div>
                                   ) : (

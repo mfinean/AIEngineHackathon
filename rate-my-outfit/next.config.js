@@ -6,6 +6,7 @@ const nextConfig = {
   env: {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     SERP_API_KEY: process.env.SERP_API_KEY,
+    FASHN_API_KEY: process.env.FASHN_API_KEY,
   },
 }
 
