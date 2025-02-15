@@ -11,6 +11,13 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"advice" | "recommendations">("advice");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
+  const [shoppingResults, setShoppingResults] = useState<Array<{
+    title: string;
+    price: string;
+    seller: string;
+    link: string;
+    image_url: string;
+  }>>([]);
 
   const loadingMessages = [
     "Analyzing your outfit's style...",
@@ -37,6 +44,7 @@ export default function Home() {
     setError(null);
     setStylingAdvice([]);
     setPurchaseRecommendations([]);
+    setShoppingResults([]);
     setLoadingStep(0);
 
     const loadingInterval = setInterval(() => {
@@ -57,6 +65,23 @@ export default function Home() {
       const data = await response.json();
       setStylingAdvice(data.styling_advice || []);
       setPurchaseRecommendations(data.purchase_recommendations || []);
+
+      if (data.purchase_recommendations?.length > 0) {
+        const searchPromises = data.purchase_recommendations.map(async (rec: { search_query: string }) => {
+          const shopResponse = await fetch('/api/shopping-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ searchQuery: rec.search_query })
+          });
+          
+          if (!shopResponse.ok) throw new Error('Shopping search failed');
+          const shopData = await shopResponse.json();
+          return shopData.results;
+        });
+
+        const results = await Promise.all(searchPromises);
+        setShoppingResults(results.flat());
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -236,6 +261,34 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {purchaseRecommendations.length > 0 && shoppingResults.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-xl font-semibold mb-4">Shopping Suggestions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {shoppingResults.map((item, index) => (
+                    <a
+                      key={index}
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                    >
+                      <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className="w-20 h-20 object-cover rounded-md mr-4"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
+                        <p className="text-blue-600 font-bold">{item.price}</p>
+                        <p className="text-sm text-gray-600">{item.seller}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

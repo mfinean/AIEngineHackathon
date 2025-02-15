@@ -11,6 +11,9 @@ npm install -g vercel
 npm install lucide-react
 npm install openai
 npm i framer-motion
+npm install playwright
+npx playwright install chromium
+npm install serpapi
 vercel login
 vercel
 ```

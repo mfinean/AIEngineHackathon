@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "framer-motion": "^12.4.3",
-    "openai": "^4.85.1"
+    "openai": "^4.85.1",
+    "playwright": "^1.42.1",
+    "serpapi": "^2.1.0"
   }
 }
