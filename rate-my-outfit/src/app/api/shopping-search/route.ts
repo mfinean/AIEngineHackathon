@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-interface ShoppingItem {
+export interface ShoppingItem {
   title: string;
   price: string;
   seller: string;
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     }
 
     // Format the shopping results
-    const results = data.shopping_results?.map((item: any) => ({
+    const results = data.shopping_results?.map((item: ShoppingResult) => ({
       title: item.title,
       price: item.price?.includes('£') ? item.price : `£${item.price?.replace('$', '')}`,
       seller: item.source || item.merchant || item.seller || 'Unknown retailer',
@@ -55,11 +55,21 @@ export async function POST(req: Request) {
     })) || [];
 
     return NextResponse.json({ results });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Shopping search error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Failed to fetch shopping results',
+      error: error instanceof Error ? error.message : 'Failed to fetch shopping results',
       results: [] 
     }, { status: 500 });
   }
+}
+
+interface ShoppingResult {
+  title: string;
+  price?: string;
+  source?: string;
+  merchant?: string;
+  seller?: string;
+  link: string;
+  thumbnail: string;
 } 

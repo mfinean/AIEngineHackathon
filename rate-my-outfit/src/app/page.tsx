@@ -26,7 +26,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"styling" | "recommendations">("styling");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
-  const [shoppingResults, setShoppingResults] = useState<ShoppingResult[]>([]);
   const [expandedRecommendation, setExpandedRecommendation] = useState<number | null>(null);
   const [recommendationResults, setRecommendationResults] = useState<{ [key: number]: ShoppingResult[] }>({});
 
@@ -55,7 +54,6 @@ export default function Home() {
     setError(null);
     setStylingAdvice([]);
     setPurchaseRecommendations([]);
-    setShoppingResults([]);
     setLoadingStep(0);
 
     const loadingInterval = setInterval(() => {
@@ -69,32 +67,18 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to analyze outfit');
+        throw new Error(data.error || 'Failed to analyze outfit');
       }
 
-      const data = await response.json();
       setStylingAdvice(data.styling_advice || []);
       setPurchaseRecommendations(data.purchase_recommendations || []);
 
-      if (data.purchase_recommendations?.length > 0) {
-        const searchPromises = data.purchase_recommendations.map(async (rec: { search_query: string }) => {
-          const shopResponse = await fetch('/api/shopping-search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ searchQuery: rec.search_query })
-          });
-          
-          if (!shopResponse.ok) throw new Error('Shopping search failed');
-          const shopData = await shopResponse.json();
-          return shopData.results;
-        });
-
-        const results = await Promise.all(searchPromises);
-        setShoppingResults(results.flat());
-      }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
     } finally {
       clearInterval(loadingInterval);
       setLoading(false);
@@ -294,10 +278,12 @@ export default function Home() {
                                           rel="noopener noreferrer"
                                           className="flex items-center p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
                                         >
-                                          <img
+                                          <Image
                                             src={result.image_url}
                                             alt={result.title}
-                                            className="w-20 h-20 object-cover rounded-md mr-4"
+                                            width={80}
+                                            height={80}
+                                            className="object-cover rounded-md mr-4"
                                           />
                                           <div className="flex-1">
                                             <h4 className="font-semibold text-white">{result.title}</h4>
@@ -349,34 +335,6 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* {purchaseRecommendations.length > 0 && shoppingResults.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-xl font-semibold mb-4 text-white">Shopping Suggestions</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {shoppingResults.map((item, index) => (
-                      <a
-                        key={index}
-                        href={item.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center p-4 bg-gray-800 rounded-lg shadow hover:bg-gray-700 transition-all"
-                      >
-                        <img
-                          src={item.image_url}
-                          alt={item.title}
-                          className="w-20 h-20 object-cover rounded-md mr-4"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-100">{item.title}</h4>
-                          <p className="text-green-400 font-bold">{item.price}</p>
-                          <p className="text-sm text-gray-300">{item.seller}</p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )} */}
             </div>
           </div>
         </div>
