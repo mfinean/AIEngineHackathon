@@ -1,1 +1,13 @@
 node_modules
+
+*.pyc
+
+example_images/
+
+python-shopping-service/debug_page.html
+
+python-shopping-service/debug_screenshot.png
+
+python-shopping-service/error.png
+
+python-shopping-service/timeout_error.png

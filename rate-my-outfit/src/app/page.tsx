@@ -7,10 +7,17 @@ export default function Home() {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [stylingAdvice, setStylingAdvice] = useState<string[]>([]);
-  const [purchaseRecommendations, setPurchaseRecommendations] = useState<{ item: string; description: string; type: string }[]>([]);
+  const [purchaseRecommendations, setPurchaseRecommendations] = useState<{ item: string; description: string; type: string; search_query: string }[]>([]);
   const [activeTab, setActiveTab] = useState<"advice" | "recommendations">("advice");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
+  const [shoppingResults, setShoppingResults] = useState<Array<{
+    title: string;
+    price: string;
+    seller: string;
+    link: string;
+    image_url: string;
+  }>>([]);
 
   const loadingMessages = [
     "Analyzing your outfit's style...",
@@ -37,6 +44,7 @@ export default function Home() {
     setError(null);
     setStylingAdvice([]);
     setPurchaseRecommendations([]);
+    setShoppingResults([]);
     setLoadingStep(0);
 
     const loadingInterval = setInterval(() => {
@@ -57,6 +65,23 @@ export default function Home() {
       const data = await response.json();
       setStylingAdvice(data.styling_advice || []);
       setPurchaseRecommendations(data.purchase_recommendations || []);
+
+      if (data.purchase_recommendations?.length > 0) {
+        const searchPromises = data.purchase_recommendations.map(async (rec: { search_query: string }) => {
+          const shopResponse = await fetch('/api/shopping-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ searchQuery: rec.search_query })
+          });
+          
+          if (!shopResponse.ok) throw new Error('Shopping search failed');
+          const shopData = await shopResponse.json();
+          return shopData.results;
+        });
+
+        const results = await Promise.all(searchPromises);
+        setShoppingResults(results.flat());
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.');
     } finally {

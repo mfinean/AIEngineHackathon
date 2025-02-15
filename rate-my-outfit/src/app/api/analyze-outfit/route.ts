@@ -34,7 +34,12 @@ export async function POST(req: Request) {
             { 
               "styling_advice": ["Tip 1", "Tip 2", "Tip 3"], 
               "purchase_recommendations": [
-                { "item": "Item Name", "description": "Why it works", "type": "type (e.g. shoes, jacket)" }
+                { 
+                  "item": "Item Name", 
+                  "description": "Why it works", 
+                  "type": "type (e.g. shoes, jacket)",
+                  "search_query": "Specific search term for Google Shopping"
+                }
               ]
             }`
           },
