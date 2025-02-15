@@ -10,6 +10,7 @@ npm install
 npm install -g vercel
 npm install lucide-react
 npm install openai
+npm i framer-motion
 vercel login
 vercel
 ```
