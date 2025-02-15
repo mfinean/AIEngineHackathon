@@ -174,41 +174,6 @@ export default function Home() {
     }
   };
 
-  const renderShoppingItem = (item: any) => (
-    <div className="relative bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-      {/* Existing item content */}
-      <button
-        onClick={() => handleTryOn(item.image_url, item.link)}
-        className="absolute bottom-2 left-2 bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-sm flex items-center gap-2"
-        disabled={tryOnState.status === 'processing'}
-      >
-        {tryOnState.status === 'processing' && tryOnState.itemId === item.link ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          'Try On'
-        )}
-      </button>
-      
-      {/* Show try-on result if available */}
-      {tryOnState.status === 'completed' && tryOnState.itemId === item.link && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-2xl">
-            <img src={tryOnState.result} alt="Try-on result" className="w-full" />
-            <button 
-              onClick={() => setTryOnState({ itemId: null, status: 'idle', result: null })}
-              className="mt-4 bg-gray-600 text-white px-4 py-2 rounded"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="flex flex-col min-h-screen">
       <header className="p-4 text-center">
@@ -375,9 +340,11 @@ export default function Home() {
                                             rel="noopener noreferrer"
                                             className="flex items-center hover:bg-gray-600 transition-colors rounded-lg p-2 mb-8"
                                           >
-                                            <img
+                                            <Image 
                                               src={result.image_url}
                                               alt={result.title}
+                                              width={80}
+                                              height={80}
                                               className="w-20 h-20 object-cover rounded-md mr-4"
                                             />
                                             <div className="flex-1">
@@ -451,9 +418,11 @@ export default function Home() {
                                                   </svg>
                                                 </button>
                                                 
-                                                <img 
-                                                  src={tryOnState.result} 
+                                                <Image 
+                                                  src={tryOnState.result || ''}
                                                   alt="Try-on result" 
+                                                  width={800}
+                                                  height={600}
                                                   className="w-full rounded-lg shadow-lg"
                                                 />
                                                 
