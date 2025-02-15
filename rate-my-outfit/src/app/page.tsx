@@ -3,21 +3,32 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion"; // For animations
 
+interface ShoppingResult {
+  title: string;
+  price: string;
+  seller: string;
+  link: string;
+  image_url: string;
+}
+
+interface PurchaseRecommendation {
+  item: string;
+  description: string;
+  type: string;
+  search_query: string;
+}
+
 export default function Home() {
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [stylingAdvice, setStylingAdvice] = useState<string[]>([]);
-  const [purchaseRecommendations, setPurchaseRecommendations] = useState<{ item: string; description: string; type: string }[]>([]);
-  const [activeTab, setActiveTab] = useState<"advice" | "recommendations">("advice");
+  const [purchaseRecommendations, setPurchaseRecommendations] = useState<PurchaseRecommendation[]>([]);
+  const [activeTab, setActiveTab] = useState<"styling" | "recommendations">("styling");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<number>(0);
-  const [shoppingResults, setShoppingResults] = useState<Array<{
-    title: string;
-    price: string;
-    seller: string;
-    link: string;
-    image_url: string;
-  }>>([]);
+  const [shoppingResults, setShoppingResults] = useState<ShoppingResult[]>([]);
+  const [expandedRecommendation, setExpandedRecommendation] = useState<number | null>(null);
+  const [recommendationResults, setRecommendationResults] = useState<{ [key: number]: ShoppingResult[] }>({});
 
   const loadingMessages = [
     "Analyzing your outfit's style...",
@@ -91,204 +102,282 @@ export default function Home() {
     }
   };
 
+  const handleRecommendationClick = async (index: number, recommendation: PurchaseRecommendation) => {
+    if (expandedRecommendation === index) {
+      setExpandedRecommendation(null);
+      return;
+    }
+
+    setExpandedRecommendation(index);
+    
+    // Only fetch if we haven't already
+    if (!recommendationResults[index]) {
+      try {
+        const response = await fetch('/api/shopping-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ searchQuery: recommendation.search_query })
+        });
+        
+        if (!response.ok) throw new Error('Shopping search failed');
+        const data = await response.json();
+        setRecommendationResults(prev => ({
+          ...prev,
+          [index]: data.results
+        }));
+      } catch (err) {
+        console.error('Failed to fetch shopping results:', err);
+      }
+    }
+  };
+
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#E3E6E8] to-[#F9FAFB] p-8 md:p-16">
-      <div className="flex flex-col md:flex-row w-full gap-8">
-        {/* Left Side - Outfit Image */}
-        <div className="w-full md:w-1/2 flex flex-col items-center bg-white shadow-lg p-8 rounded-xl border border-gray-300">
-          <h1 className="text-6xl font-extrabold text-gray-900 mb-6 font-['Playfair_Display'] tracking-wide">
-            Lambda Fashion
-          </h1>
-          {/* Image Upload */}
-          {!preview ? (
-            <label htmlFor="upload" className="border-2 border-dashed border-gray-400 rounded-lg p-10 w-full text-center cursor-pointer hover:bg-gray-100 transition-all">
-              <span className="text-gray-600 font-semibold">Click to Upload an Outfit</span>
-              <input type="file" id="upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            </label>
-          ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
-              <Image src={preview} alt="Uploaded Outfit" width={400} height={500} className="rounded-xl shadow-md hover:scale-105 transition-transform" />
-              <label htmlFor="upload" className="mt-4 text-blue-600 font-semibold cursor-pointer hover:underline">
-                Change Photo
+    <div className="flex flex-col min-h-screen">
+      <header className="p-4 text-center">
+        <h1 className="logo-text text-4xl mb-2">Lambda Fashion</h1>
+        <p className="text-gray-300 text-sm">Your AI Fashion Assistant</p>
+      </header>
+      <div className="flex min-h-screen bg-gradient-to-br from-[#E3E6E8] to-[#F9FAFB] p-8 md:p-16">
+        <div className="flex flex-col md:flex-row w-full gap-8">
+          {/* Left Side - Outfit Image */}
+          <div className="w-full md:w-1/2 flex flex-col items-center bg-white shadow-lg p-8 rounded-xl border border-gray-300">
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-6 font-['Playfair_Display'] tracking-wide">
+              Photo Upload
+            </h1>
+            {/* Image Upload */}
+            {!preview ? (
+              <label htmlFor="upload" className="border-2 border-dashed border-gray-400 rounded-lg p-10 w-full text-center cursor-pointer hover:bg-gray-100 transition-all">
+                <span className="text-gray-600 font-semibold">Click to Upload an Outfit</span>
+                <input type="file" id="upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
               </label>
-              <input type="file" id="upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            </motion.div>
-          )}
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
+                <Image src={preview} alt="Uploaded Outfit" width={400} height={500} className="rounded-xl shadow-md hover:scale-105 transition-transform" />
+                <label htmlFor="upload" className="mt-4 text-blue-600 font-semibold cursor-pointer hover:underline">
+                  Change Photo
+                </label>
+                <input type="file" id="upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              </motion.div>
+            )}
 
-          {/* Analyze Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`mt-6 px-6 py-3 text-white font-semibold rounded-lg shadow-md ${
-              preview ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
-            } transition-all`}
-            onClick={() => {
-              console.log("🚀 Analyze button clicked!");
-              analyzeOutfit();
-            }}
-            disabled={!preview || loading}
-          >
-            {loading ? "Analyzing..." : "Analyze Outfit"}
-          </motion.button>
-
-          {/* Loading Spinner */}
-          {loading && (
-            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 relative">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                  <motion.div
-                    key={loadingStep}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="text-center"
-                  >
-                    <p className="text-lg font-semibold text-gray-800 mb-2">
-                      {loadingMessages[loadingStep]}
-                    </p>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${((loadingStep + 1) / loadingMessages.length) * 100}%` }}
-                      ></div>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Right Side - Tabs & Display */}
-        <div className="w-full md:w-1/2 flex flex-col items-center">
-          <div className="flex gap-4 mt-6">
-            <button
-              className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
-                activeTab === "advice" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
-              }`}
-              onClick={() => setActiveTab("advice")}
+            {/* Analyze Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`mt-6 px-6 py-3 text-white font-semibold rounded-lg shadow-md ${
+                preview ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
+              } transition-all`}
+              onClick={() => {
+                console.log("🚀 Analyze button clicked!");
+                analyzeOutfit();
+              }}
+              disabled={!preview || loading}
             >
-              Styling Advice
-            </button>
-            <button
-              className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
-                activeTab === "recommendations" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
-              }`}
-              onClick={() => setActiveTab("recommendations")}
-            >
-              Recommendations
-            </button>
-          </div>
+              {loading ? "Analyzing..." : "Analyze Outfit"}
+            </motion.button>
 
-          {/* Add a wrapper div with relative positioning and min-height */}
-          <div className="relative w-full min-h-[300px]">
-            {/* Display Styling Advice */}
-            <AnimatePresence mode="wait">
-              {activeTab === "advice" && stylingAdvice.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="absolute top-6 left-0 right-0 p-6 bg-white shadow-lg rounded-xl w-full max-w-md text-gray-700 text-center mx-auto"
-                >
-                  <h2 className="text-xl font-semibold mb-2">Styling Tips:</h2>
-                  <ul className="list-disc list-inside">
-                    {stylingAdvice.map((tip, index) => (
-                      <li key={index}>{tip}</li>
-                    ))}
-                  </ul>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Display Purchase Recommendations */}
-            <AnimatePresence mode="wait">
-              {activeTab === "recommendations" && purchaseRecommendations.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="absolute top-6 left-0 right-0 p-6 bg-white shadow-lg rounded-xl w-full max-w-md text-gray-700 text-center mx-auto"
-                >
-                  <h2 className="text-xl font-semibold mb-4">Suggested Items:</h2>
-                  <div className="flex flex-col space-y-4">
-                    {purchaseRecommendations.map((rec, index) => (
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        key={index}
-                        className="bg-gray-100 p-4 rounded-lg shadow-md"
-                      >
-                        <h3 className="font-bold text-lg">{rec.item}</h3>
-                        <p className="text-sm">{rec.description}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Empty States */}
-            <AnimatePresence mode="wait">
-              {activeTab === "advice" && !loading && !error && stylingAdvice.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="absolute top-6 left-0 right-0 p-6 bg-white shadow-lg rounded-xl w-full max-w-md text-gray-700 text-center mx-auto"
-                >
-                  <p>Upload and analyze an outfit to get styling advice!</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence mode="wait">
-              {activeTab === "recommendations" && !loading && !error && purchaseRecommendations.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="absolute top-6 left-0 right-0 p-6 bg-white shadow-lg rounded-xl w-full max-w-md text-gray-700 text-center mx-auto"
-                >
-                  <p>Upload and analyze an outfit to get purchase recommendations!</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {purchaseRecommendations.length > 0 && shoppingResults.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-xl font-semibold mb-4">Shopping Suggestions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {shoppingResults.map((item, index) => (
-                    <a
-                      key={index}
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+            {/* Loading Spinner */}
+            {loading && (
+              <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 relative">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                    <motion.div
+                      key={loadingStep}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="text-center"
                     >
-                      <img
-                        src={item.image_url}
-                        alt={item.title}
-                        className="w-20 h-20 object-cover rounded-md mr-4"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
-                        <p className="text-blue-600 font-bold">{item.price}</p>
-                        <p className="text-sm text-gray-600">{item.seller}</p>
+                      <p className="text-lg font-semibold text-gray-800 mb-2">
+                        {loadingMessages[loadingStep]}
+                      </p>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${((loadingStep + 1) / loadingMessages.length) * 100}%` }}
+                        ></div>
                       </div>
-                    </a>
-                  ))}
+                    </motion.div>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Right Side - Tabs & Display */}
+          <div className="w-full md:w-1/2 flex flex-col items-center">
+            <div className="flex gap-4 mt-6">
+              <button
+                className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
+                  activeTab === "styling" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                }`}
+                onClick={() => setActiveTab("styling")}
+              >
+                Styling Advice
+              </button>
+              <button
+                className={`px-6 py-2 text-white font-semibold rounded-lg shadow-lg transition-all ${
+                  activeTab === "recommendations" ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+                }`}
+                onClick={() => setActiveTab("recommendations")}
+              >
+                Recommendations
+              </button>
+            </div>
+
+            {/* Add a wrapper div with relative positioning and min-height */}
+            <div className="relative w-full min-h-[300px]">
+              {/* Display Styling Advice */}
+              <AnimatePresence mode="wait">
+                {activeTab === "styling" && stylingAdvice.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="absolute top-6 left-0 right-0 p-6 bg-gray-800 shadow-lg rounded-xl w-full max-w-md text-gray-200 text-center mx-auto"
+                  >
+                    <h2 className="text-xl font-semibold mb-4">Styling Tips:</h2>
+                    <ul className="space-y-2">
+                      {stylingAdvice.map((advice, index) => (
+                        <li key={index}>{advice}</li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Display Purchase Recommendations */}
+              <AnimatePresence mode="wait">
+                {activeTab === "recommendations" && purchaseRecommendations.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="absolute top-6 left-0 right-0 p-6 bg-gray-800 shadow-lg rounded-xl w-full max-w-md text-gray-200 text-center mx-auto"
+                  >
+                    <h2 className="text-xl font-semibold mb-4">Recommended Items:</h2>
+                    <div className="space-y-4">
+                      {purchaseRecommendations.map((recommendation, index) => (
+                        <div key={index} className="bg-gray-700 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => handleRecommendationClick(index, recommendation)}
+                            className="w-full p-4 text-left hover:bg-gray-600 transition-colors"
+                          >
+                            <h3 className="text-lg font-semibold text-white">{recommendation.item}</h3>
+                            <p className="text-gray-300 text-sm mt-1">{recommendation.description}</p>
+                          </button>
+                          
+                          <AnimatePresence>
+                            {expandedRecommendation === index && (
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: "auto" }}
+                                exit={{ height: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="p-4 bg-gray-800">
+                                  {recommendationResults[index] ? (
+                                    <div className="grid grid-cols-1 gap-4">
+                                      {recommendationResults[index].map((result, resultIndex) => (
+                                        <a
+                                          key={resultIndex}
+                                          href={result.link}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                        >
+                                          <img
+                                            src={result.image_url}
+                                            alt={result.title}
+                                            className="w-20 h-20 object-cover rounded-md mr-4"
+                                          />
+                                          <div className="flex-1">
+                                            <h4 className="font-semibold text-white">{result.title}</h4>
+                                            <p className="text-green-400 font-bold">{result.price}</p>
+                                            <p className="text-sm text-gray-300">{result.seller}</p>
+                                          </div>
+                                        </a>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="flex justify-center items-center h-20">
+                                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Empty States */}
+              <AnimatePresence mode="wait">
+                {activeTab === "styling" && !loading && !error && stylingAdvice.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="absolute top-6 left-0 right-0 p-6 bg-gray-800 shadow-lg rounded-xl w-full max-w-md text-gray-200 text-center mx-auto"
+                  >
+                    <p>Upload and analyze an outfit to get styling advice!</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait">
+                {activeTab === "recommendations" && !loading && !error && purchaseRecommendations.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="absolute top-6 left-0 right-0 p-6 bg-gray-800 shadow-lg rounded-xl w-full max-w-md text-gray-200 text-center mx-auto"
+                  >
+                    <p>Upload and analyze an outfit to get purchase recommendations!</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* {purchaseRecommendations.length > 0 && shoppingResults.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-xl font-semibold mb-4 text-white">Shopping Suggestions</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {shoppingResults.map((item, index) => (
+                      <a
+                        key={index}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center p-4 bg-gray-800 rounded-lg shadow hover:bg-gray-700 transition-all"
+                      >
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="w-20 h-20 object-cover rounded-md mr-4"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-100">{item.title}</h4>
+                          <p className="text-green-400 font-bold">{item.price}</p>
+                          <p className="text-sm text-gray-300">{item.seller}</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )} */}
+            </div>
           </div>
         </div>
       </div>
