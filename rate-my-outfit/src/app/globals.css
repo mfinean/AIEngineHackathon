@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Poppins:wght@300;400;600&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,7 +16,14 @@
 }
 
 body {
+  background: linear-gradient(to bottom right, #1E293B, #111827); /* Deep navy gradient */
+  font-family: 'Poppins', sans-serif;
+  color: #F9FAFB; /* Warm white text for contrast */
+}
+
+
+/* body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
-}
+} */
