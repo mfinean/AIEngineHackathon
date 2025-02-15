@@ -1,6 +1,12 @@
 {
   "dependencies": {
+    "@auth/core": "^0.37.4",
+    "@prisma/client": "^6.3.1",
     "framer-motion": "^12.4.3",
+    "next-auth": "^5.0.0-beta.25",
     "openai": "^4.85.1"
+  },
+  "devDependencies": {
+    "prisma": "^6.3.1"
   }
 }

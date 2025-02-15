@@ -2,8 +2,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion"; // For animations
+import { signIn, signOut, useSession } from "next-auth/react"
 
 export default function Home() {
+  const { data: session } = useSession()
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [stylingAdvice, setStylingAdvice] = useState<string[]>([]);
@@ -66,8 +68,45 @@ export default function Home() {
     }
   };
 
+  const UserSection = () => {
+    if (session) {
+      return (
+        <div className="flex items-center gap-4">
+          <img 
+            src={session.user?.image || ''} 
+            alt={session.user?.name || ''} 
+            className="w-8 h-8 rounded-full"
+          />
+          <button
+            onClick={() => signOut()}
+            className="text-sm text-gray-600 hover:text-gray-800"
+          >
+            Sign Out
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <button
+        onClick={() => signIn('google')}
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+      >
+        <img 
+          src="/google-icon.svg" 
+          alt="Google" 
+          className="w-5 h-5"
+        />
+        Sign in with Google
+      </button>
+    )
+  }
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#E3E6E8] to-[#F9FAFB] p-8 md:p-16">
+      <div className="absolute top-4 right-4">
+        <UserSection />
+      </div>
       <div className="flex flex-col md:flex-row w-full gap-8">
         {/* Left Side - Outfit Image */}
         <div className="w-full md:w-1/2 flex flex-col items-center bg-white shadow-lg p-8 rounded-xl border border-gray-300">
