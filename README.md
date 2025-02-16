@@ -3,6 +3,7 @@
 An AI-powered fashion assistant that analyzes your outfits, provides styling advice, and suggests complementary clothing items.
 
 ![App Interface](supplementary/app.png)
+![Recommendations Interface](supplementary/recommendations.png)
 
 ## Project Overview
 Check out our [presentation slides](supplementary/Lambda%20Fashion.gslides.pdf) for a walkthrough of the project and what we're trying to solve.
@@ -14,8 +15,6 @@ Check out our [presentation slides](supplementary/Lambda%20Fashion.gslides.pdf) 
 - 🛍️ Receive curated shopping suggestions
 - 🎭 Virtual try-on for recommended items
 - 🌐 UK-focused shopping results with GBP pricing
-
-![Recommendations Interface](supplementary/recommendations.png)
 
 ## Setup Instructions
 
@@ -81,6 +80,9 @@ vercel
 3. Add environment variables in the Vercel dashboard:
    - Go to Project Settings > Environment Variables
    - Add the same variables as in `.env.local`
+
+## Note
+- The application works fine when run locally. However, in the production Vercel environment, you may encounter a "The string did not match the expected pattern" error when analyzing outfits. This is still to be investigated.
 
 ## Architecture
 
