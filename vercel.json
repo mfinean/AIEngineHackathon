@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd rate-my-outfit && npm install && npm run build",
+  "outputDirectory": "rate-my-outfit/.next",
+  "installCommand": "cd rate-my-outfit && npm install"
+} 
