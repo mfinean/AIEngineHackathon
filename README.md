@@ -32,7 +32,7 @@ Check out our [presentation slides](supplementary/Lambda%20Fashion.gslides.pdf) 
 
 1. Clone the repository:
 ```bash
-git clone [your-repo-url]
+git clone https://github.com/mfinean/AIEngineHackathon
 cd rate-my-outfit
 ```
 
