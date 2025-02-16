@@ -17,7 +17,7 @@
 
 body {
   background: linear-gradient(to bottom right, #1E293B, #111827); /* Deep navy gradient */
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-inter), sans-serif;
   color: #F9FAFB; /* Warm white text for contrast */
 }
 
