@@ -15,6 +15,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No image provided." }, { status: 400 });
     }
 
+    // Validate the base64 string format
+    const base64Pattern = /^data:image\/(jpeg|png|gif);base64,/;
+    if (!base64Pattern.test(imageBase64)) {
+      console.log("❌ Invalid base64 format!");
+      return NextResponse.json({ error: "Invalid image format." }, { status: 400 });
+    }
+
     // Reduce image size by removing data URL prefix if present
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     // Take only first 50KB of image data to reduce tokens
@@ -51,45 +58,28 @@ export async function POST(req: Request) {
       ]
     });
 
-    try {
-      console.log("✅ Received OpenAI response");
-    
-      const result = response.choices[0]?.message?.content;
-      if (!result) {
-        throw new Error("No response from OpenAI");
-      }
+    console.log("✅ Received OpenAI response");
 
-      try {
-        // Clean up the response by removing markdown code block syntax
-        const cleanResult = result
-          .replace(/```json\n?/, '') // Remove opening ```json
-          .replace(/```\n?$/, '')    // Remove closing ```
-          .trim();                   // Remove any extra whitespace
-
-        console.log("Cleaned response:", cleanResult);
-        const parsedResult = JSON.parse(cleanResult);
-        return NextResponse.json(parsedResult);
-      } catch (parseError) {
-        console.error("❌ Failed to parse OpenAI response:", parseError);
-        console.error("Raw response:", result);
-        return NextResponse.json({ 
-          error: "Failed to parse analysis results.",
-          rawResponse: result 
-        }, { status: 500 });
-      }
-
-    } catch (error: unknown) {
-      console.error("❌ OpenAI API Error:", error);
-      return NextResponse.json({ 
-        error: error instanceof Error ? error.message : "Failed to analyze outfit.",
-        details: JSON.stringify(error)
-      }, { status: 500 });
+    const result = response.choices[0]?.message?.content;
+    if (!result) {
+      throw new Error("No response from OpenAI");
     }
+
+    // Clean up the response by removing markdown code block syntax
+    const cleanResult = result
+      .replace(/```json\n?/, '') // Remove opening ```json
+      .replace(/```\n?$/, '')    // Remove closing ```
+      .trim();                   // Remove any extra whitespace
+
+    console.log("Cleaned response:", cleanResult);
+    const parsedResult = JSON.parse(cleanResult);
+    return NextResponse.json(parsedResult);
 
   } catch (error: unknown) {
     console.error("❌ OpenAI API Error:", error);
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : "Failed to analyze outfit." 
+      error: error instanceof Error ? error.message : "Failed to analyze outfit.",
+      details: JSON.stringify(error)
     }, { status: 500 });
   }
 }
