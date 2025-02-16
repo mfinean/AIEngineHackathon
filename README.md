@@ -1,4 +1,4 @@
-# Rate My Outfit - AI Fashion Assistant
+# Lambda Fashion - AI Fashion Assistant
 
 An AI-powered fashion assistant that analyzes your outfits, provides styling advice, and suggests complementary clothing items.
 
@@ -32,7 +32,7 @@ Check out our [presentation slides](supplementary/Lambda%20Fashion.gslides.pdf) 
 
 1. Clone the repository:
 ```bash
-git clone [your-repo-url]
+git clone https://github.com/mfinean/AIEngineHackathon
 cd rate-my-outfit
 ```
 
