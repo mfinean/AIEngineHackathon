@@ -1,4 +1,4 @@
-# Rate My Outfit - AI Fashion Assistant
+# Lambda Fashion - AI Fashion Assistant
 
 An AI-powered fashion assistant that analyzes your outfits, provides styling advice, and suggests complementary clothing items.
 
